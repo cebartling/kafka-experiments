@@ -14,32 +14,22 @@ Key Features
 
 ## Implementation
 
-Here is a variant of your Kafka experiment repository that uses Kafka in KRaft mode, which eliminates the need for Zookeeper. This is ideal for local development or testing with the latest Kafka architecture.
-
-This version of the repository uses a single Kafka broker running in KRaft (Kafka Raft Metadata mode). It uses a standalone docker-compose.yml file to start the Kafka service with embedded metadata management—no Zookeeper involved.
+Here is a variant of your Kafka experiment repository that uses Kafka in KRaft mode, which eliminates the need for Zookeeper. This is ideal for local development or testing with the latest Kafka architecture. It uses a standalone docker-compose.yml file to start the Kafka service with embedded metadata management—no Zookeeper involved.
 
 
 Key Configuration Details
-	•	KRaft mode enabled using KAFKA_PROCESS_ROLES=broker,controller.
-	•	Single-node controller quorum with KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093.
+	•	KRaft mode enabled using `KAFKA_PROCESS_ROLES=broker,controller`.
+	•	Single-node controller quorum with `KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093`.
 	•	No Zookeeper dependency at all.
 	•	Data persisted in a Docker volume to preserve state between restarts.
 
 
 ## Usage
 
-
-### Start Kafka
-`make up`
-
-### Tail logs
-make logs
-
-### Stop Kafka
-`make down`
-
-### Reset everything (volume wipe + re-init)
-`make reset`
-
-### Check status
-`make status`
+### Docker Compose Commands
+`docker compose up`
+`docker compose down`
+`docker compose reset`
+`docker compose logs`
+`docker compose exec kafka kafka-topics.sh --list --bootstrap-server kafka:9092`
+`docker compose exec kafka kafka-console-producer.sh --broker-list kafka:9092 --topic my-topic`
