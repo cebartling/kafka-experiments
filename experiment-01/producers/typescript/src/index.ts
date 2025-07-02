@@ -1,6 +1,8 @@
 import { ProducerMessage } from "./types";
 import { KafkaProducerService } from "./service";
 
+const TOPIC = "experiment-01-topic";
+
 // Usage examples
 async function main() {
   const producerService = new KafkaProducerService("experiment-01-app", [
@@ -25,14 +27,14 @@ async function main() {
     await producerService.connect();
 
     // Example 1: Send a simple message
-    await producerService.sendMessage("experiment-01-topic", {
+    await producerService.sendMessage(TOPIC, {
       key: "user-123",
       value: "User logged in",
     });
 
     // Example 2: Send a JSON object
     await producerService.sendJSON(
-      "experiment-01-topic",
+      TOPIC,
       {
         userId: 123,
         action: "login",
@@ -46,7 +48,7 @@ async function main() {
     );
 
     // Example 3: Send multiple messages
-    await producerService.sendMessages("experiment-01-topic", [
+    await producerService.sendMessages(TOPIC, [
       {
         key: "sensor-1",
         value: { temperature: 23.5, humidity: 65 },
@@ -58,7 +60,7 @@ async function main() {
     ]);
 
     // Example 4: Send with headers and specific partition
-    await producerService.sendMessage("experiment-01-topic", {
+    await producerService.sendMessage(TOPIC, {
       key: "order-456",
       value: {
         orderId: 456,
@@ -77,14 +79,14 @@ async function main() {
     // Example 5: Batch send to multiple topics
     await producerService.sendBatch([
       {
-        topic: "experiment-01-topic",
+        topic: TOPIC,
         messages: [
           { key: "user-1", value: JSON.stringify({ action: "signup" }) },
           { key: "user-2", value: JSON.stringify({ action: "login" }) },
         ],
       },
       {
-        topic: "analytics",
+        topic: TOPIC,
         messages: [
           {
             value: JSON.stringify({
@@ -102,7 +104,7 @@ async function main() {
     let counter = 0;
     const interval = setInterval(async () => {
       try {
-        await producerService.sendJSON("heartbeat", {
+        await producerService.sendJSON(TOPIC, {
           id: counter++,
           timestamp: new Date().toISOString(),
           status: "alive",

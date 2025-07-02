@@ -1,10 +1,14 @@
 import { KafkaConsumerService } from "./service";
 
+const TOPIC = "experiment-01-topic";
+const CONSUMER_GROUP_ID = "experiment-01-group";
+const CLIENT_ID = "experiment-01-app";
+
 // Usage example
 async function main() {
   const consumerService = new KafkaConsumerService(
-    "experiment-01-app",
-    "experiment-01-group",
+    CLIENT_ID,
+    CONSUMER_GROUP_ID,
     ["localhost:9092"],
   );
 
@@ -26,7 +30,7 @@ async function main() {
     await consumerService.connect();
 
     // Subscribe to topics
-    await consumerService.subscribe(["experiment-01-topic"]);
+    await consumerService.subscribe([TOPIC]);
 
     // Start consuming with custom message handler
     await consumerService.startConsuming(
