@@ -1,18 +1,132 @@
 services:
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.6.0
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-
+  # Kafka broker with KRaft mode (no Zookeeper needed)
   kafka:
-    image: confluentinc/cp-kafka:7.6.0
-    depends_on:
-      - zookeeper
+    image: confluentinc/cp-kafka:latest
+    hostname: kafka
+    container_name: kafka
+    profiles: ["infrastructure", "typescript-demo"]
     ports:
       - "9092:9092"
+      - "9997:9997"
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092"
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_JMX_PORT: 9997
+      KAFKA_JMX_OPTS: -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=kafka -Dcom.sun.management.jmxremote.rmi.port=9997
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:29093"
+      KAFKA_LISTENERS: "PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:9092"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_LOG_DIRS: "/tmp/kraft-combined-logs"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bash",
+          "-c",
+          "kafka-broker-api-versions --bootstrap-server localhost:9092",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kafka-net
+
+  # Optional: Kafka UI for monitoring
+  kafka-ui:
+    profiles: ["infrastructure", "typescript-demo"]
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+    networks:
+      - kafka-net
+
+  # Kafka Producer Application
+  typescript-kafka-producer:
+    profiles: ["typescript-demo"]
+    build:
+      context: ./producers/typescript/
+      dockerfile: Containerfile
+      target: production
+    container_name: typescript-kafka-producer-app
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      # Kafka configuration
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_CLIENT_ID: typescript-kafka-producer-docker
+      # Application configuration
+      NODE_ENV: production
+      LOG_LEVEL: info
+    volumes:
+      # Mount logs directory for persistent logging
+      - ./logs:/app/logs
+    networks:
+      - kafka-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('Health check passed')"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+
+  # Kafka Consumer Application
+  typescript-kafka-consumer:
+    profiles: ["typescript-demo"]
+    build:
+      context: ./consumers/typescript/
+      dockerfile: Containerfile
+      target: production
+    container_name: typescript-kafka-consumer-app
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      # Kafka configuration
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_CLIENT_ID: typescript-kafka-consumer-docker
+      # Application configuration
+      NODE_ENV: production
+      LOG_LEVEL: info
+    volumes:
+      # Mount logs directory for persistent logging
+      - ./logs:/app/logs
+    networks:
+      - kafka-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('Health check passed')"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+
+networks:
+  kafka-net:
+    driver: bridge
+    name: kafka-network
+
+volumes:
+  kafka-data:
+    driver: local
+  zookeeper-data:
+    driver: local

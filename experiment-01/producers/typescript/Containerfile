@@ -1,0 +1,77 @@
+# Multi-stage build for Kafka Producer TypeScript application
+
+# Stage 1: Build stage
+FROM node:22-alpine AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Install build dependencies
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    libc6-compat
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev dependencies)
+RUN npm ci --only=production=false
+
+# Copy source code
+COPY . .
+
+# Build the TypeScript application
+RUN npm run build
+
+# Remove dev dependencies to reduce size
+RUN npm prune --production
+
+# Stage 2: Production stage
+FROM node:22-alpine AS production
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S kafkauser -u 1001
+
+# Set working directory
+WORKDIR /app
+
+# Install runtime dependencies only
+RUN apk add --no-cache \
+    dumb-init \
+    tini
+
+# Copy built application from builder stage
+COPY --from=builder --chown=kafkauser:nodejs /app/dist ./dist
+COPY --from=builder --chown=kafkauser:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=kafkauser:nodejs /app/package*.json ./
+
+# Create logs directory
+RUN mkdir -p /app/logs && chown kafkauser:nodejs /app/logs
+
+# Switch to non-root user
+USER kafkauser
+
+# Expose port if your app has a health check endpoint
+EXPOSE 3000
+
+# Add health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD node -e "console.log('Health check passed')" || exit 1
+
+# Use tini as PID 1 for proper signal handling
+ENTRYPOINT ["/sbin/tini", "--"]
+
+# Start the application
+CMD ["node", "dist/index.js"]
+
+# Labels for better container management
+LABEL maintainer="chris.bartling@gmail.com"
+LABEL version="1.0.0"
+LABEL description="Kafka Producer TypeScript Application"
+LABEL org.opencontainers.image.source="https://github.com/cebartling/kafka-experiments"
+LABEL org.opencontainers.image.title="Typescript Kafka Producer"
+LABEL org.opencontainers.image.description="TypeScript Kafka producer application"
+LABEL org.opencontainers.image.version="1.0.0"
