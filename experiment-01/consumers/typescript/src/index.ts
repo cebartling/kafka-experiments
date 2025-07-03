@@ -2,14 +2,16 @@ import { KafkaConsumerService } from "./service";
 
 const TOPIC = "experiment-01-topic";
 const CONSUMER_GROUP_ID = "experiment-01-group";
-const CLIENT_ID = "experiment-01-app";
+const KAFKA_CLIENT_ID =
+  process.env.KAFKA_CLIENT_ID || "typescript-kafka-consumer";
+const KAFKA_BROKER = process.env.KAFKA_BROKER || "kafka:9092";
 
 // Usage example
 async function main() {
   const consumerService = new KafkaConsumerService(
-    CLIENT_ID,
+    KAFKA_CLIENT_ID,
     CONSUMER_GROUP_ID,
-    ["localhost:9092"],
+    [KAFKA_BROKER],
   );
 
   // Handle graceful shutdown

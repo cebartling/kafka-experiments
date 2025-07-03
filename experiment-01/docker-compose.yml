@@ -71,8 +71,8 @@ services:
         condition: service_healthy
     environment:
       # Kafka configuration
-      KAFKA_BROKERS: kafka:29092
-      KAFKA_CLIENT_ID: typescript-kafka-producer-docker
+      KAFKA_BROKER: kafka:9092
+      KAFKA_CLIENT_ID: experiment-01-typescript-producer
       # Application configuration
       NODE_ENV: production
       LOG_LEVEL: info
@@ -104,8 +104,8 @@ services:
         condition: service_healthy
     environment:
       # Kafka configuration
-      KAFKA_BROKERS: kafka:29092
-      KAFKA_CLIENT_ID: typescript-kafka-consumer-docker
+      KAFKA_BROKER: kafka:9092
+      KAFKA_CLIENT_ID: experiment-01-typescript-consumer
       # Application configuration
       NODE_ENV: production
       LOG_LEVEL: info

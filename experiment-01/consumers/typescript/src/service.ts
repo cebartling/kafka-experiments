@@ -5,9 +5,9 @@ export class KafkaConsumerService {
   private consumer: Consumer;
 
   constructor(
-    private clientId: string = "experiment-01-app",
-    private groupId: string = "experiment-01-group",
-    private brokers: string[] = ["localhost:9092"],
+    private clientId: string,
+    private groupId: string,
+    private brokers: string[],
   ) {
     this.kafka = new Kafka({
       clientId: this.clientId,

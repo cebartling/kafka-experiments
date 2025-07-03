@@ -13,8 +13,8 @@ export class KafkaProducerService {
   private isConnected: boolean = false;
 
   constructor(
-    private clientId: string = "experiment-01-app",
-    private brokers: string[] = ["localhost:9092"],
+    private clientId: string,
+    private brokers: string[],
   ) {
     this.kafka = new Kafka({
       clientId: this.clientId,

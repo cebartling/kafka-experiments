@@ -2,11 +2,14 @@ import { ProducerMessage } from "./types";
 import { KafkaProducerService } from "./service";
 
 const TOPIC = "experiment-01-topic";
+const KAFKA_CLIENT_ID =
+  process.env.KAFKA_CLIENT_ID || "experiment-01-typescript-producer";
+const KAFKA_BROKER = process.env.KAFKA_BROKER || "kafka:9092";
 
 // Usage examples
 async function main() {
-  const producerService = new KafkaProducerService("experiment-01-app", [
-    "localhost:9092",
+  const producerService = new KafkaProducerService(KAFKA_CLIENT_ID, [
+    KAFKA_BROKER,
   ]);
 
   // Handle graceful shutdown
@@ -29,7 +32,12 @@ async function main() {
     // Example 1: Send a simple message
     await producerService.sendMessage(TOPIC, {
       key: "user-123",
-      value: "User logged in",
+      value: {
+        message: "User logged in",
+        timestamp: new Date().toISOString(),
+        id: "123",
+        userId: "user-123",
+      },
     });
 
     // Example 2: Send a JSON object
