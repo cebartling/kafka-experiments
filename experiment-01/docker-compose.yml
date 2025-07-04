@@ -4,7 +4,7 @@ services:
     image: confluentinc/cp-kafka:latest
     hostname: kafka
     container_name: kafka
-    profiles: ["infrastructure", "typescript-demo"]
+    profiles: ["infrastructure", "typescript-demo", "kotlin-demo"]
     ports:
       - "9092:9092"
       - "9997:9997"
@@ -44,7 +44,7 @@ services:
 
   # Optional: Kafka UI for monitoring
   kafka-ui:
-    profiles: ["infrastructure", "typescript-demo"]
+    profiles: ["infrastructure", "typescript-demo", "kotlin-demo"]
     image: provectuslabs/kafka-ui:latest
     container_name: kafka-ui
     depends_on:
@@ -59,68 +59,122 @@ services:
       - kafka-net
 
   # Kafka Producer Application
-  typescript-kafka-producer:
-    profiles: ["typescript-demo"]
-    build:
-      context: ./producers/typescript/
-      dockerfile: Containerfile
-      target: production
-    container_name: typescript-kafka-producer-app
-    depends_on:
-      kafka:
-        condition: service_healthy
-    environment:
-      # Kafka configuration
-      KAFKA_BROKER: kafka:9092
-      KAFKA_CLIENT_ID: experiment-01-typescript-producer
-      # Application configuration
-      NODE_ENV: production
-      LOG_LEVEL: info
-    volumes:
-      # Mount logs directory for persistent logging
-      - ./logs:/app/logs
-    networks:
-      - kafka-net
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "node", "-e", "console.log('Health check passed')"]
-      interval: 30s
-      timeout: 10s
-      start_period: 60s
-      retries: 3
+  # typescript-kafka-producer:
+  #   profiles: ["typescript-demo"]
+  #   build:
+  #     context: ./producers/typescript/
+  #     dockerfile: Containerfile
+  #     target: production
+  #   container_name: typescript-kafka-producer-app
+  #   depends_on:
+  #     kafka:
+  #       condition: service_healthy
+  #   environment:
+  #     # Kafka configuration
+  #     KAFKA_BROKER: kafka:9092
+  #     KAFKA_CLIENT_ID: experiment-01-typescript-producer
+  #     # Application configuration
+  #     NODE_ENV: production
+  #     LOG_LEVEL: info
+  #   volumes:
+  #     # Mount logs directory for persistent logging
+  #     - ./logs:/app/logs
+  #   networks:
+  #     - kafka-net
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "node", "-e", "console.log('Health check passed')"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     start_period: 60s
+  #     retries: 3
 
   # Kafka Consumer Application
-  typescript-kafka-consumer:
-    profiles: ["typescript-demo"]
+  # typescript-kafka-consumer:
+  #   profiles: ["typescript-demo"]
+  #   build:
+  #     context: ./consumers/typescript/
+  #     dockerfile: Containerfile
+  #     target: production
+  #   container_name: typescript-kafka-consumer-app
+  #   depends_on:
+  #     kafka:
+  #       condition: service_healthy
+  #     typescript-kafka-producer:
+  #       condition: service_healthy
+  #   environment:
+  #     # Kafka configuration
+  #     KAFKA_BROKER: kafka:9092
+  #     KAFKA_CLIENT_ID: experiment-01-typescript-consumer
+  #     # Application configuration
+  #     NODE_ENV: production
+  #     LOG_LEVEL: info
+  #   volumes:
+  #     # Mount logs directory for persistent logging
+  #     - ./logs:/app/logs
+  #   networks:
+  #     - kafka-net
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "node", "-e", "console.log('Health check passed')"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     start_period: 60s
+  #     retries: 3
+
+  # Kafka Producer Application
+  kotlin-kafka-producer:
+    profiles: ["kotlin-demo"]
     build:
-      context: ./consumers/typescript/
+      context: ./producers/kotlin/
       dockerfile: Containerfile
-      target: production
-    container_name: typescript-kafka-consumer-app
+    container_name: kotlin-kafka-producer-app
     depends_on:
       kafka:
         condition: service_healthy
-      typescript-kafka-producer:
-        condition: service_healthy
     environment:
-      # Kafka configuration
-      KAFKA_BROKER: kafka:9092
-      KAFKA_CLIENT_ID: experiment-01-typescript-consumer
-      # Application configuration
-      NODE_ENV: production
-      LOG_LEVEL: info
+      SPRING_PROFILES_ACTIVE: docker
     volumes:
       # Mount logs directory for persistent logging
       - ./logs:/app/logs
+    ports:
+      - "8070:8070"
     networks:
       - kafka-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "node", "-e", "console.log('Health check passed')"]
-      interval: 30s
-      timeout: 10s
-      start_period: 60s
+      test: ["CMD", "curl", "-f", "http://localhost:8070/actuator/health"]
+      interval: 10s
+      timeout: 5s
       retries: 3
+      start_period: 5s
+
+  # Kafka Consumer Application
+  kotlin-kafka-consumer:
+    profiles: ["kotlin-demo"]
+    build:
+      context: ./consumers/kotlin/
+      dockerfile: Containerfile
+    container_name: kotlin-kafka-consumer-app
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    volumes:
+      # Mount logs directory for persistent logging
+      - ./logs:/app/logs
+    ports:
+      - "8071:8071"
+    networks:
+      - kafka-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8071/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 networks:
   kafka-net:
